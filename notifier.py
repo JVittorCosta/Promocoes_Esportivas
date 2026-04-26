@@ -2,15 +2,15 @@ import requests
 import sqlite3
 import os
 
-TOKEN = os.environ["TELEGRAM_TOKEN"]
-CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
+TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
+CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 EMOJIS = {
-    "aposta_gratis": "🎁",
-    "cashback": "💰",
-    "super_odds": "🚀",
-    "bonus": "🎯",
-    "outro": "📢",
+    "aposta_gratis": "Aposta Gratis",
+    "cashback": "Cashback",
+    "super_odds": "Super Odds",
+    "bonus": "Bonus",
+    "outro": "Promocao",
 }
 
 def enviar(msg):
@@ -26,18 +26,18 @@ def notificar():
     ).fetchall()
 
     for id_, casa, titulo, desc, url, tipo in pendentes:
-        emoji = EMOJIS.get(tipo, "📢")
+        tipo_label = EMOJIS.get(tipo, "Promocao")
         msg = (
-            f"{emoji} <b>{casa}</b>\n"
-            f"<b>{titulo}</b>\n"
+            f"[{tipo_label}] {casa}\n"
+            f"{titulo}\n"
             f"{desc[:200]}\n"
-            f"🔗 {url}"
+            f"{url}"
         )
         enviar(msg)
         con.execute("UPDATE promocoes SET notificado=1 WHERE id=?", (id_,))
         con.commit()
 
-    print(f"{len(pendentes)} notificações enviadas")
+    print(f"{len(pendentes)} notificacoes enviadas")
 
 if __name__ == "__main__":
     notificar()
