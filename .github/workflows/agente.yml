@@ -29,6 +29,8 @@ jobs:
       - name: Rodar scraper
         run: python scraper.py
 
+      - run: pip install requests
+
       - name: Rodar notifier
         run: python notifier.py
         env:
