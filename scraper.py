@@ -76,11 +76,31 @@ CASAS = [
 ]
 
 KEYWORDS = {
-    "aposta_gratis": ["aposta grátis", "aposta gratis", "free bet", "freebet", "aposta sem risco"],
+    "aposta_gratis": ["aposta gratis", "aposta grátis", "free bet", "freebet", "aposta sem risco"],
     "cashback": ["cashback", "cash back", "dinheiro de volta"],
     "super_odds": ["super odds", "odds aumentadas", "odds turbinadas", "odds melhoradas", "boost"],
-    "bonus": ["bônus", "bonus", "boas-vindas", "primeiro depósito"],
+    "bonus": ["bonus", "bônus", "boas-vindas", "primeiro deposito", "primeiro depósito"],
 }
+
+PALAVRAS_PROMO = [
+    "gratis", "grátis", "freebet", "cashback", "bonus", "bônus",
+    "odds", "boost", "deposito", "depósito", "oferta", "promoção",
+    "promocao", "reembolso", "free", "ganhe", "ganha", "aposta gratis",
+    "aposta grátis", "sem risco", "dobro", "multiplica"
+]
+
+PALAVRAS_CASSINO = [
+    "cassino", "casino", "slot", "slots", "roleta", "blackjack",
+    "poker", "pôquer", "baccarat", "caça-niquel", "jackpot",
+    "crash", "mines", "aviator", "fortune", "pragmatic", "pgsoft",
+    "spribe", "evolution", "bacbo", "dragon tiger"
+]
+
+PALAVRAS_ESPORTE = [
+    "futebol", "basquete", "tenis", "tênis", "vôlei", "volei",
+    "esporte", "sport", "jogo", "partida", "campeonato", "liga",
+    "aposta esportiva", "pre-jogo", "ao vivo", "handicap"
+]
 
 def init_db():
     con = sqlite3.connect("promocoes.db")
@@ -124,40 +144,51 @@ def salvar_novas(con, promos):
 async def scrape_casa(browser, casa):
     try:
         page = await browser.new_page()
-        await page.set_extra_http_headers({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+        await page.set_extra_http_headers({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        })
         await page.goto(casa["url"], timeout=20000, wait_until="domcontentloaded")
         await page.wait_for_timeout(3000)
 
-        elementos = await page.query_selector_all("h1, h2, h3, h4, [class*='promo'], [class*='banner'], [class*='offer']")
+        elementos = await page.query_selector_all(
+            "[class*='promo'], [class*='bonus'], [class*='offer'], [class*='banner'], "
+            "[class*='promotion'], [class*='campanha'], [class*='destaque'], "
+            "[class*='sport'], [class*='esport']"
+        )
 
         promos = []
         vistos = set()
-        for el in elementos[:20]:
-            titulo = (await el.inner_text()).strip()
-            if len(titulo) < 8 or titulo in vistos:
-                continue
-            vistos.add(titulo)
 
-            desc = ""
-            try:
-                parent = await el.evaluate_handle("el => el.closest('section, article, div.card, div.promo, li') || el.parentElement")
-                desc = (await parent.as_element().inner_text()).strip()[:300]
-            except:
-                pass
+        for el in elementos[:30]:
+            titulo = (await el.inner_text()).strip()[:200]
+            titulo = titulo.split("\n")[0].strip()
+
+            if len(titulo) < 10 or titulo in vistos:
+                continue
+
+            titulo_lower = titulo.lower()
+
+            if not any(p in titulo_lower for p in PALAVRAS_PROMO):
+                continue
+
+            if any(p in titulo_lower for p in PALAVRAS_CASSINO):
+                continue
+
+            vistos.add(titulo)
 
             uid = hashlib.md5(f"{casa['nome']}{titulo}".encode()).hexdigest()
             promos.append({
                 "id": uid,
                 "casa": casa["nome"],
                 "titulo": titulo,
-                "descricao": desc,
+                "descricao": "",
                 "url": casa["url"],
-                "tipo": detectar_tipo(titulo, desc),
+                "tipo": detectar_tipo(titulo, ""),
                 "data_coleta": datetime.now().isoformat(),
             })
 
         await page.close()
-        print(f"{casa['nome']}: {len(promos)} encontradas")
+        print(f"{casa['nome']}: {len(promos)} promocoes esportivas encontradas")
         return promos
 
     except Exception as e:
