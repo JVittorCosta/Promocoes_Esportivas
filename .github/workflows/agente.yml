@@ -1,4 +1,4 @@
-name: Agente Promoções Apostas
+name: Agente Promocoes Apostas
 
 on:
   schedule:
@@ -16,8 +16,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Instalar dependências
-        run: pip install -r requirements.txt
+      - name: Instalar dependencias
+        run: |
+          pip install playwright
+          playwright install chromium
 
       - name: Restaurar banco de dados
         uses: actions/cache@v4
@@ -25,10 +27,10 @@ jobs:
           path: promocoes.db
           key: db-cache-v1
 
-      - name: Coletar promoções
+      - name: Coletar promocoes
         run: python scraper.py
 
-      - name: Enviar notificações
+      - name: Enviar notificacoes
         run: python notifier.py
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -39,7 +41,3 @@ jobs:
         with:
           path: promocoes.db
           key: db-cache-v1
-          - name: Instalar dependências
-        run: |
-          pip install playwright
-          playwright install chromium
