@@ -1,4 +1,5 @@
-name: Agente
+# fix workflow
+name: Agente v2
 on:
   schedule:
     - cron: '0 */4 * * *'
