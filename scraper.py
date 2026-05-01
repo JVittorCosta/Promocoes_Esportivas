@@ -101,20 +101,17 @@ PALAVRAS_PROMO_VALIDAS = [
     "empate premiado", "missao criar aposta",
     "aposte no brasileirao", "aposte nos torneios",
     "chance extra", "nba playoffs",
+    "em apostas gratis", "em freebet", "em creditos",
 ]
 
 PALAVRAS_ESPECIAIS = {
     "Lottu": ["super aposta turbinada"],
     "Esportes da Sorte": ["super aposta turbinada"],
-    "Bulls Bet": ["mega impulso"],
     "Bet VIP": ["odds aumentadas"],
-    "Aposta Tudo": ["superodds"],
     "Play Bet": ["turbinada da play"],
     "Bolsa de Aposta": ["ou anula", "marca ou anula"],
-    "Ganhei Bet": ["quiz brasileirao", "bolao europeu", "comboboost"],
-    "Galera Bet": ["liga da galera", "desafio das odds", "garanta sua freebet"],
-    "Meridian Bet": ["freebet todos os dias"],
     "Superbet": ["golden boost"],
+    "Meridian Bet": ["freebet todos os dias"],
 }
 
 def init_db():
@@ -136,7 +133,7 @@ def init_db():
 
 def detectar_tipo(titulo, descricao):
     texto = (titulo + " " + descricao).lower()
-    if any(p in texto for p in ["aposta gratis", "aposta grátis", "free bet", "freebet", "aposta sem risco", "chance extra", "nba playoffs"]):
+    if any(p in texto for p in ["aposta gratis", "aposta grátis", "free bet", "freebet", "aposta sem risco", "chance extra", "nba playoffs", "em apostas gratis", "em freebet"]):
         return "aposta_gratis"
     if any(p in texto for p in ["cashback", "empate premiado"]):
         return "cashback"
@@ -157,28 +154,21 @@ def is_titulo_generico(titulo):
 
 def is_valido(titulo, casa_nome):
     t = titulo.lower().strip()
-
     if len(t) < 15 or len(t) > 150:
         return False
-
     if is_titulo_generico(t):
         return False
-
     for lixo in PALAVRAS_LIXO:
         if lixo in t:
             return False
-
     for cassino in PALAVRAS_CASSINO:
         if cassino in t:
             return False
-
     palavras_especiais = PALAVRAS_ESPECIAIS.get(casa_nome, [])
     if any(p in t for p in palavras_especiais):
         return True
-
     if any(p in t for p in PALAVRAS_PROMO_VALIDAS):
         return True
-
     return False
 
 def salvar_novas(con, promos):
@@ -222,13 +212,10 @@ async def scrape_casa(browser, casa):
                 titulo = titulo.split("\n")[0].strip()
             except:
                 continue
-
             if titulo in titulos_vistos:
                 continue
-
             if not is_valido(titulo, casa["nome"]):
                 continue
-
             titulos_vistos.add(titulo)
 
             desc = ""
