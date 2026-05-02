@@ -50,7 +50,15 @@ DOMINIOS_APOSTAS = [
     "reidopitaco", "lottu", "sporty", "mcgames", "betesporte",
     "vbet", "bolsadeaposta", "versus", "bandbet", "casadeapostas",
     "betvip", "playbet", "esportesdasorte", "rivalo", "novibet",
-    "pixbet", "betnacional", "betwarrior", "betano", "betsul",
+    "pixbet", "betnacional", "betwarrior", "bet.br",
+]
+
+# Pastas para monitorar — inclui a pasta Apostas criada no Gmail
+PASTAS_GMAIL = [
+    "Apostas",           # pasta específica que criamos
+    "INBOX",             # caixa de entrada
+    "[Gmail]/Spam",      # spam
+    "[Gmail]/All Mail",  # todos os emails
 ]
 
 def init_db():
@@ -157,11 +165,14 @@ def is_email_valido(remetente, assunto):
 def buscar_emails_pasta(mail, pasta):
     emails = []
     try:
-        status, _ = mail.select(pasta)
+        status, _ = mail.select(f'"{pasta}"')
         if status != "OK":
+            print(f"  Pasta {pasta} nao encontrada")
             return []
         _, ids = mail.search(None, "UNSEEN")
-        for eid in ids[0].split()[-50:]:
+        ids_lista = ids[0].split()
+        print(f"  Pasta {pasta}: {len(ids_lista)} emails nao lidos")
+        for eid in ids_lista[-50:]:
             _, data = mail.fetch(eid, "(RFC822)")
             msg = email.message_from_bytes(data[0][1])
             remetente = msg.get("From", "")
@@ -170,6 +181,7 @@ def buscar_emails_pasta(mail, pasta):
                 "id": eid,
                 "remetente": remetente,
                 "assunto": assunto,
+                "pasta": pasta,
             })
     except Exception as e:
         print(f"  Erro pasta {pasta}: {e}")
@@ -190,15 +202,20 @@ def main():
         print(f"Erro ao conectar Gmail: {e}")
         return
 
-    pastas = ["INBOX", "[Gmail]/Spam", "[Gmail]/All Mail"]
     todos_emails = []
+    ids_vistos = set()
 
-    for pasta in pastas:
+    for pasta in PASTAS_GMAIL:
         emails = buscar_emails_pasta(mail, pasta)
-        print(f"  Pasta {pasta}: {len(emails)} emails nao lidos")
-        todos_emails.extend(emails)
+        for em in emails:
+            chave = f"{em['remetente']}_{em['assunto']}"
+            if chave not in ids_vistos:
+                ids_vistos.add(chave)
+                todos_emails.append(em)
 
     mail.logout()
+
+    print(f"\nTotal: {len(todos_emails)} emails unicos encontrados")
 
     novas = 0
     for em in todos_emails:
