@@ -96,7 +96,7 @@ PALAVRAS_PROMO_VALIDAS = [
     "100% do valor", "dobro da odd",
     "garanta sua freebet", "desafio das odds",
     "palpite na champions", "palpite na liberta",
-    "quem sabe faz ao vivo", "liga da galera",
+    "quem sabe faz ao vivo",
     "golden boost", "super aumentada", "marca ou anula",
     "empate premiado", "missao criar aposta",
     "aposte no brasileirao", "aposte nos torneios",
@@ -147,10 +147,7 @@ def detectar_tipo(titulo, descricao):
 
 def is_titulo_generico(titulo):
     t = titulo.lower().strip()
-    for gen in TITULOS_GENERICOS:
-        if t == gen:
-            return True
-    return False
+    return any(t == gen for gen in TITULOS_GENERICOS)
 
 def is_valido(titulo, casa_nome):
     t = titulo.lower().strip()
@@ -171,9 +168,17 @@ def is_valido(titulo, casa_nome):
         return True
     return False
 
+def ja_existe(con, uid):
+    resultado = con.execute(
+        "SELECT id FROM promocoes WHERE id=?", (uid,)
+    ).fetchone()
+    return resultado is not None
+
 def salvar_novas(con, promos):
     novas = []
     for p in promos:
+        if ja_existe(con, p["id"]):
+            continue
         try:
             con.execute(
                 "INSERT INTO promocoes VALUES (?,?,?,?,?,?,?,0)",
@@ -192,8 +197,8 @@ async def scrape_casa(browser, casa):
         await page.set_extra_http_headers({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         })
-        await page.goto(casa["url"], timeout=25000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(4000)
+        await page.goto(casa["url"], timeout=20000, wait_until="domcontentloaded")
+        await page.wait_for_timeout(3000)
 
         elementos = await page.query_selector_all(
             "h1, h2, h3, h4, "
@@ -249,13 +254,25 @@ async def scrape_casa(browser, casa):
 
 async def main():
     con = init_db()
+
+    total_encontradas = 0
+    total_novas = 0
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        for casa in CASAS:
-            promos = await scrape_casa(browser, casa)
-            novas = salvar_novas(con, promos)
-            print(f"  -> {len(novas)} novas salvas")
+        tarefas = [scrape_casa(browser, casa) for casa in CASAS]
+        resultados = await asyncio.gather(*tarefas, return_exceptions=True)
+
+        for resultado in resultados:
+            if isinstance(resultado, Exception):
+                continue
+            novas = salvar_novas(con, resultado)
+            total_encontradas += len(resultado)
+            total_novas += len(novas)
+
         await browser.close()
+
+    print(f"\nTotal: {total_encontradas} encontradas, {total_novas} novas salvas")
 
 if __name__ == "__main__":
     asyncio.run(main())
