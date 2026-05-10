@@ -50,15 +50,12 @@ DOMINIOS_APOSTAS = [
     "reidopitaco", "lottu", "sporty", "mcgames", "betesporte",
     "vbet", "bolsadeaposta", "versus", "bandbet", "casadeapostas",
     "betvip", "playbet", "esportesdasorte", "rivalo", "novibet",
-    "pixbet", "betnacional", "betwarrior", "bet.br",
+    "pixbet", "betnacional", "betwarrior", "bet.br", "pagol",
+    ".bet",
 ]
 
-# Pastas para monitorar — inclui a pasta Apostas criada no Gmail
 PASTAS_GMAIL = [
-    "Apostas",           # pasta específica que criamos
-    "INBOX",             # caixa de entrada
-    "[Gmail]/Spam",      # spam
-    "[Gmail]/All Mail",  # todos os emails
+    "Apostas",
 ]
 
 def init_db():
@@ -145,6 +142,7 @@ def identificar_casa(remetente):
         "novibet": "Novibet",
         "pixbet": "Pix Bet",
         "betnacional": "Bet Nacional",
+        "pagol": "Pagol",
     }
     for chave, nome in mapeamento.items():
         if chave in r:
@@ -178,7 +176,6 @@ def buscar_emails_pasta(mail, pasta):
             remetente = msg.get("From", "")
             assunto = decodificar_assunto(msg.get("Subject", ""))
             emails.append({
-                "id": eid,
                 "remetente": remetente,
                 "assunto": assunto,
                 "pasta": pasta,
