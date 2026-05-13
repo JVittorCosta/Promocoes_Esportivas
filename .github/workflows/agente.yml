@@ -1,11 +1,9 @@
 name: Agente
-# v9
+# v11
 on:
   schedule:
-    - cron: '30 8 * * *'
-    - cron: '0 13 * * *'
-    - cron: '0 20 * * *'
-    - cron: '0 23 * * *'
+    - cron: '30 10 * * *'
+    - cron: '0 21 * * *'
   workflow_dispatch:
 jobs:
   scrape:
@@ -14,19 +12,12 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Restaurar banco de dados
-        id: cache-db
-        uses: actions/cache/restore@v4
-        with:
-          path: promocoes.db
-          key: promocoes-db-v2
-          restore-keys: |
-            promocoes-db-v2
 
       - run: pip install playwright requests
 
@@ -48,8 +39,10 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
-      - name: Salvar banco de dados
-        uses: actions/cache/save@v4
-        with:
-          path: promocoes.db
-          key: promocoes-db-v2-${{ github.run_id }}
+      - name: Salvar banco de dados no repositorio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add promocoes.db
+          git diff --staged --quiet || git commit -m "Atualizar banco de dados"
+          git push
